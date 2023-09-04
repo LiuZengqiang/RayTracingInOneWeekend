@@ -1,2 +1,2 @@
-## Ray tracing in on weeekend by C++
+## Ray tracing in one weeekend by C++
 
