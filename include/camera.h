@@ -21,6 +21,9 @@ class camera {
   vec3 vup =
       vec3(0, 1, 0);  // 相机(视角)的"上"向量，没必要完全跟 lookfrom-lookat
                       // 向量正交，因为之后会使用 向量的叉乘操作使得两个向量正交
+
+  double defocus_angle = 0;  // 景深效果中，一个像素中发出的光线角度
+  double focus_dist = 10;  // 理想的焦距
   /* Public Camera Parameters Here */
 
   void render(const hittable_list& world) {
@@ -58,6 +61,9 @@ class camera {
   // w:相机的后方向
   vec3 u, v, w;  // 相机局部坐标系的三个基本坐标轴
 
+  vec3 defocus_disk_u;  // 散焦的 u 方向半径
+  vec3 defocus_disk_v;  // 散焦的 v 方向半径
+
   /* Private Camera Variables Here */
   void initialize() {
     // Calculate the image height, and ensure that it's at least 1.
@@ -69,8 +75,8 @@ class camera {
     // 相机参数
     center = lookfrom;
 
-    auto focal_length =
-        (lookfrom - lookat).length();  // 焦距 表示 视点 到 被盯着的点 的距离
+    // auto focal_length =
+    //     (lookfrom - lookat).length();  // 焦距 表示 视点 到 被盯着的点 的距离
 
     auto theta = degrees_to_radians(vfov);  // 视场角 弧度
     auto h = tan(theta / 2.0);
@@ -80,7 +86,7 @@ class camera {
     // 这里的 viewport_height 和 viewport_width 必须用实际的 image
     // 像素值计算，不能用 aspect_ratio 计算，因为 image_width/image_height
     // 不一定真的等于 aspect_ratio
-    auto viewport_height = 2 * h * focal_length;  // 视窗 世界坐标系下的值
+    auto viewport_height = 2 * h * focus_dist;  // 视窗 世界坐标系下的值
     auto viewport_width =
         viewport_height * (static_cast<double>(image_width) / image_height);
 
@@ -107,10 +113,18 @@ class camera {
     // viewport_upper_left = 视点 往z负方向移动到达 视窗中心
     // 再往左移动视窗宽度的一半 再往上移动视窗高度的一半
     auto viewport_upper_left =
-        center - (focal_length)*w - viewport_u / 2.0 - viewport_v / 2.0;
+        center - focus_dist * w - viewport_u / 2 - viewport_v / 2;
 
     // 视窗图像像素坐标为(0,0)的世界坐标值
     pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+
+    // 散焦半径
+    auto defocus_radius =
+        focus_dist * tan(degrees_to_radians(defocus_angle / 2.0));
+    // 单位散焦半径 u 方向
+    defocus_disk_u = defocus_radius * u;
+    // 单位散焦半径 v 方向
+    defocus_disk_v = defocus_radius * v;
   }
 
   // 计算 光线 r 在场景 world 中的颜色
@@ -145,9 +159,9 @@ class camera {
   // 采样 视点->像素 (i,j) 的一条光线
   ray get_ray(int i, int j) const {
     auto pixel_center = pixel00_loc + i * pixel_delta_u + j * pixel_delta_v;
-
     auto pixel_sample = pixel_center + pixel_sample_square();
-    auto ray_origin = center;
+
+    auto ray_origin = (defocus_angle <= 0) ? center : defocus_disk_sample();
     auto ray_direction = pixel_sample - ray_origin;
     return ray(ray_origin, ray_direction);
   }
@@ -156,6 +170,11 @@ class camera {
     auto px = -0.5 + random_double();
     auto py = -0.5 + random_double();
     return px * pixel_delta_u + py * pixel_delta_v;
+  }
+  // 在一个 disk 中采样一个点
+  point3 defocus_disk_sample() const {
+    auto p = random_in_unit_disk();
+    return center + (p[0] * defocus_disk_u) + (p[1] * defocus_disk_v);
   }
 };
 
