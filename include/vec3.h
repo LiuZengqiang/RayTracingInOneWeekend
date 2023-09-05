@@ -52,6 +52,11 @@ class vec3 {
     return vec3(random_double(min, max), random_double(min, max),
                 random_double(min, max));
   }
+  // 判断向量是否 接近0，用于误差判断
+  bool near_zero() const {
+    auto s = 1e-8;
+    return fabs(e[0] < s) && fabs(e[1] < s) && fabs(e[2] < s);
+  }
 };
 // point3 is just an alias for vec3, but useful for geometric clarity in the
 // code.

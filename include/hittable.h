@@ -8,10 +8,13 @@
 // 交点 p;
 // 交点法向 normal;
 // 交点是光线ray.at(t)位置
+class material;
+
 class hit_record {
  public:
   point3 p;
   vec3 normal;  // 这个normal总是和ray方向相反，因此不一定是物体表面的外法向
+  shared_ptr<material> mat;  // 交点的材料属性
   double t;
   // 用于标记这个交点是在物体的外表面(true) 还是内表面(false)
   bool front_face;

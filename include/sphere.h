@@ -3,12 +3,13 @@
 #define SPHERE_H
 
 #include "hittable.h"
+#include "material.h"
 #include "vec3.h"
-
 class sphere : public hittable {
  public:
   // 构造函数包含 球心、半径
-  sphere(point3 _center, double _radius) : center(_center), radius(_radius) {}
+  sphere(point3 _center, double _radius, shared_ptr<material> _material)
+      : center(_center), radius(_radius), mat(_material) {}
 
   // 计算光线是否与该球相交
   // ray_tmin 和 ray_tmax 给出合法光线的距离约束
@@ -48,6 +49,8 @@ class sphere : public hittable {
     rec.p = r.at(rec.t);
     vec3 outward_normal = (rec.p - center) / radius;
     rec.set_face_normal(r, outward_normal);
+    // 更新交点的材料属性
+    rec.mat = mat;
 
     return true;
   }
@@ -55,6 +58,7 @@ class sphere : public hittable {
  private:
   point3 center;
   double radius;
+  shared_ptr<material> mat;  // 球的表面材料属性
 };
 
 #endif

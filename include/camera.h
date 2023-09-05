@@ -1,9 +1,9 @@
 #ifndef CAMERA_H
 #define CAMERA_H
-
 #include "color.h"
 #include "hittable.h"
 #include "hittable_list.h"
+#include "material.h"
 #include "rtweekend.h"
 
 // 相机类
@@ -98,10 +98,18 @@ class camera {
     // 如果集中物体，就反射物体的颜色*0.5
     // 忽略[0,0.001) 范围内的交点，以避免浮点运算的误差
     if (world.hit(r, interval(0.001, infinity), rec)) {
-      // 加上多次反射
-      // 使用 Lambertian 分布 表示 漫反射(而不是半球上均匀分布的漫反射)
-      vec3 direction = rec.normal + random_unit_vector();
-      return 0.5 * ray_color(ray(rec.p, direction), depth - 1, world);
+      // 计算反射结果
+      // 反射光线
+      ray scattered;
+      // 光线的散射
+      color attenuation;
+      // 入射光, 交点, 衰减, 散射
+      if (rec.mat->scatter(r, rec, attenuation, scattered)) {
+        return attenuation * ray_color(scattered, depth - 1, world);
+      } else {
+        // 理论上不能到达这里， rec.mat->scatter() 函数总是返回true
+        return color(0, 0, 0);
+      }
     }
     // 如果没有击中物体，就假设击中天空，天空的颜色是一个无意义的随机值
     vec3 unit_direction = unit_vector(r.direction());
