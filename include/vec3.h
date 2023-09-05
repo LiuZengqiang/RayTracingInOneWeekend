@@ -121,4 +121,25 @@ inline vec3 random_on_hemisphere(const vec3 &normal) {
     return -on_unit_sphere;
   }
 }
+
+// 计算反射光线的函数
+// 入射光 v， 法向 n
+inline vec3 reflect(const vec3 &v, const vec3 &n) {
+  return v - 2 * dot(v, n) * n;
+}
+
+// 计算折射光线的反数
+// 根据 折射定律，其中的公式进行了推到变形:
+// eta'*sin(theta') = eta*sin(theta) ->
+// 折射光R'分为垂直于折射面法向n'的R'_和平行于折射面法向的R'| ->
+// 可以得到:
+// R'_=eta/eta'*(R+cos(theta)*n)
+// R'|=-sqrt(1-|R'_|^2)n
+// 其中 n 为折射面(指向入射光区域)的法向
+inline vec3 refract(const vec3 &v, const vec3 &n, double etai_over_etat) {
+  double cos_theta = fmin(1.0, dot(-v, n));
+  vec3 r_out_perp = etai_over_etat * (v + cos_theta * n);
+  vec3 r_out_parallel = -sqrt(fabs(1.0 - r_out_perp.length_squared())) * n;
+  return r_out_perp + r_out_parallel;
+}
 #endif

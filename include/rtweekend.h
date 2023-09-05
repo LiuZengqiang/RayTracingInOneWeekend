@@ -43,9 +43,4 @@ inline double random_double(double min, double max) {
 #include "ray.h"
 #include "vec3.h"
 
-// 计算反射光线的函数
-// 入射光 v， 法向 n
-// NOTE:这里网上并没有使用 inline 函数是为什么??
-vec3 reflect(const vec3& v, const vec3& n) { return v - 2 * dot(v, n) * n; }
-
 #endif

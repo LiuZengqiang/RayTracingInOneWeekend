@@ -13,6 +13,14 @@ class camera {
   int image_width = 400;             // 图片的像素宽度
   int samples_per_pixel = 100;       // 每个像素的采样光线数
   int max_depth = 10;                // 光线在最大深度(反射次数)
+
+  double vfov = 90;  // Vertical view angle, field of view 视场角
+
+  point3 lookfrom = point3(0, 0, -1);  // 相机(眼睛的所在位置)
+  point3 lookat = point3(0, 0, 0);     // 相机盯着的点
+  vec3 vup =
+      vec3(0, 1, 0);  // 相机(视角)的"上"向量，没必要完全跟 lookfrom-lookat
+                      // 向量正交，因为之后会使用 向量的叉乘操作使得两个向量正交
   /* Public Camera Parameters Here */
 
   void render(const hittable_list& world) {
@@ -45,6 +53,10 @@ class camera {
   point3 pixel00_loc;  // 左上角像素的坐标
   vec3 pixel_delta_u;  // u方向 单位像素的 坐标delta
   vec3 pixel_delta_v;  // v方向 单位像素的 坐标delta
+  // u:相机的右/左方向
+  // v:相机的上方向
+  // w:相机的后方向
+  vec3 u, v, w;  // 相机局部坐标系的三个基本坐标轴
 
   /* Private Camera Variables Here */
   void initialize() {
@@ -55,26 +67,38 @@ class camera {
 
     // Camera
     // 相机参数
-    auto focal_length = 1.0;  // 焦距 表示 视点 到 视窗 的距离
+    center = lookfrom;
+
+    auto focal_length =
+        (lookfrom - lookat).length();  // 焦距 表示 视点 到 被盯着的点 的距离
+
+    auto theta = degrees_to_radians(vfov);  // 视场角 弧度
+    auto h = tan(theta / 2.0);
+
     // Viewport widths less than one are ok since they are real valued.
     // viewport 视窗, 是一个虚拟的窗口，使用世界坐标系下的坐标尺寸表示
     // 这里的 viewport_height 和 viewport_width 必须用实际的 image
     // 像素值计算，不能用 aspect_ratio 计算，因为 image_width/image_height
     // 不一定真的等于 aspect_ratio
-    auto viewport_height = 2.0;  // 视窗
+    auto viewport_height = 2 * h * focal_length;  // 视窗 世界坐标系下的值
     auto viewport_width =
         viewport_height * (static_cast<double>(image_width) / image_height);
-    center = point3(0, 0, 0);  // 视点(相机中心)
 
+    // 计算相机的局部坐标 u,v,w
+    w = unit_vector(lookfrom - lookat);
+    u = unit_vector(cross(vup, w));
+    v = cross(w, u);
     // Calculate the vectors across the horizontal and down the vertical
     // viewport edges. 视窗u向量
-    auto viewport_u = vec3(viewport_width, 0, 0);
+    auto viewport_u = viewport_width * u;
     // 视窗v向量
-    auto viewport_v = vec3(0, -viewport_height, 0);
+    // 这里必须乘以 -v，因为
+    // 图片的坐标系中是以左上角为(0,0)，height方向的坐标往下为正
+    auto viewport_v = viewport_height * -v;
 
-    // Calculate the horizontal and vertical delta vectors from pixel to pixel.
-    // 计算每个像素代表的坐标delta
-    // pixel_delta_u 等于 u 方向一个像素表示的坐标 delta 值
+    // Calculate the horizontal and vertical delta vectors from pixel to
+    // pixel. 计算每个像素代表的坐标delta pixel_delta_u 等于 u
+    // 方向一个像素表示的坐标 delta 值
     pixel_delta_u = viewport_u / image_width;
     pixel_delta_v = viewport_v / image_height;
 
@@ -83,7 +107,7 @@ class camera {
     // viewport_upper_left = 视点 往z负方向移动到达 视窗中心
     // 再往左移动视窗宽度的一半 再往上移动视窗高度的一半
     auto viewport_upper_left =
-        center - vec3(0, 0, focal_length) - viewport_u / 2 - viewport_v / 2;
+        center - (focal_length)*w - viewport_u / 2.0 - viewport_v / 2.0;
 
     // 视窗图像像素坐标为(0,0)的世界坐标值
     pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);

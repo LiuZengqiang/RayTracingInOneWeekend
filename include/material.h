@@ -57,5 +57,54 @@ class metal : public material {
   color albedo;  // 颜色衰减系数 attenuation
   double fuzz;   // 镜面反射光散射系数 fuzzy
 };
+// 新建一种具有折射属性的材料
+
+class dielectric : public material {
+ public:
+  dielectric(double _etai_over_etat) : etai_over_etat(_etai_over_etat) {}
+
+  bool scatter(const ray& r_in, const hit_record& rec, color& attenuation,
+               ray& scattered) const override {
+    // 先假设没有衰减进行测试
+    attenuation = color(1.0, 1.0, 1.0);
+    // 根据入射光的方向进行判断 eta/eta' 的值
+    double refraction_ratio =
+        rec.front_face ? (1.0 / etai_over_etat) : (etai_over_etat);
+
+    // 先单位化入射光
+    vec3 unit_direction = unit_vector(r_in.direction());
+
+    // 判断入射光 theta 角是否很大，导致只发生反射，而没有折射
+    double cos_theta = fmin(dot(rec.normal, -unit_direction), 1.0);
+
+    double sin_theta = sqrt(1.0 - cos_theta * cos_theta);
+    bool cannot_refraction = refraction_ratio * sin_theta > 1.0;
+    vec3 direction;
+
+    if (cannot_refraction ||
+        reflectance(cos_theta, refraction_ratio) > random_double()) {
+      // 如果入射角度太大 或者 根据反射/折射比率计算得到该光线为反射->只有反射
+      direction = reflect(unit_direction, rec.normal);
+    } else {
+      // 存在折射
+      // 计算折射光线
+      direction = refract(unit_direction, rec.normal, refraction_ratio);
+    }
+    scattered = ray(rec.p, direction);
+    return true;
+  }
+
+ private:
+  double etai_over_etat;
+
+  // 计算 反射折射比率
+  // 输入 入射光cos, 两者介质的折射率
+  static double reflectance(double cosine, double ref_idx) {
+    // 使用 Schlick's 逼近公式表示
+    auto r0 = (1 - ref_idx) / (1 + ref_idx);
+    r0 = r0 * r0;
+    return r0 + (1 - r0) * pow((1 - cosine), 5);
+  }
+};
 
 #endif
