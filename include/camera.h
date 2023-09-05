@@ -107,7 +107,8 @@ class camera {
       if (rec.mat->scatter(r, rec, attenuation, scattered)) {
         return attenuation * ray_color(scattered, depth - 1, world);
       } else {
-        // 理论上不能到达这里， rec.mat->scatter() 函数总是返回true
+        // 有一定可能 反射光 与 交点法向 反向，此时
+        // rec.mat->scatter()函数返回false
         return color(0, 0, 0);
       }
     }
