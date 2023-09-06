@@ -1,10 +1,23 @@
+/**
+ * @file vec3.h
+ * @author Liuzengqiang (12021032@zju.edu.cn)
+ * @brief
+ * @version 0.1
+ * @date 2023-09-06
+ *
+ * @copyright Copyright (c) 2023
+ *
+ */
 #ifndef VEC3_H
 #define VEC3_H
 #include <cmath>
 #include <iostream>
 
 using std::sqrt;
-
+/**
+ * @brief 三维向量类
+ *
+ */
 class vec3 {
  public:
   double e[3];
@@ -17,9 +30,9 @@ class vec3 {
   double z() const { return e[2]; }
 
   vec3 operator-() const { return vec3(-e[0], -e[1], -e[2]); }
-  // 常量成员重载函数，假如对象为 vec3 const a，则a[0]调用该函数
+  // 常量成员重载函数，假如对象为 vec3 const temp_vec3，则temp_vec3[0]调用该函数
   double operator[](int i) const { return e[i]; }
-  // 假如对象为 vec3 a，则a[0]调用该函数
+  // 假如对象为 vec3 temp_vec3，则temp_vec3[0]调用该函数
   double &operator[](int i) { return e[i]; }
 
   vec3 &operator+=(const vec3 &v) {
@@ -52,7 +65,7 @@ class vec3 {
     return vec3(random_double(min, max), random_double(min, max),
                 random_double(min, max));
   }
-  // 判断向量是否 接近0，用于误差判断
+  // 判断向量是否接近0, 用于误差判断
   bool near_zero() const {
     auto s = 1e-8;
     return fabs(e[0] < s) && fabs(e[1] < s) && fabs(e[2] < s);
@@ -100,15 +113,15 @@ inline vec3 cross(const vec3 &u, const vec3 &v) {
 
 // 正则化一个向量
 inline vec3 unit_vector(vec3 v) { return v / v.length(); }
-// 在 一个单位球内采样一个点
-// 此处使用的方法比较简单
+
+// 在一个单位球内采样一个点
 inline vec3 random_in_unit_sphere() {
   while (true) {
     auto p = vec3::random(-1, 1);
     if (p.length_squared() < 1) return p;
   }
 }
-// 正则化在单位球内采样的向量
+// 在一个单位球面上采样一个点
 inline vec3 random_unit_vector() {
   return unit_vector(random_in_unit_sphere());
 }
@@ -122,7 +135,7 @@ inline vec3 random_on_hemisphere(const vec3 &normal) {
   }
 }
 
-// 在圆内均匀采样，用于实现景深效果
+// 在圆盘内均匀采样
 inline vec3 random_in_unit_disk() {
   while (true) {
     auto p = vec3(random_double(-1, 1), random_double(-1, 1), 0);
@@ -131,21 +144,24 @@ inline vec3 random_in_unit_disk() {
     }
   }
 }
-
-// 计算反射光线的函数
-// 入射光 v， 法向 n
+/**
+ * @brief 计算理想的反射光线
+ *
+ * @param v 入射光
+ * @param n 法向
+ * @return vec3
+ */
 inline vec3 reflect(const vec3 &v, const vec3 &n) {
   return v - 2 * dot(v, n) * n;
 }
-
-// 计算折射光线的反数
-// 根据 折射定律，其中的公式进行了推到变形:
-// eta'*sin(theta') = eta*sin(theta) ->
-// 折射光R'分为垂直于折射面法向n'的R'_和平行于折射面法向的R'| ->
-// 可以得到:
-// R'_=eta/eta'*(R+cos(theta)*n)
-// R'|=-sqrt(1-|R'_|^2)n
-// 其中 n 为折射面(指向入射光区域)的法向
+/**
+ * @brief 计算折射的折射光线
+ *
+ * @param v 入射光线
+ * @param n 法向
+ * @param etai_over_etat 入射介质折射率/出射介质折射率
+ * @return vec3
+ */
 inline vec3 refract(const vec3 &v, const vec3 &n, double etai_over_etat) {
   double cos_theta = fmin(1.0, dot(-v, n));
   vec3 r_out_perp = etai_over_etat * (v + cos_theta * n);

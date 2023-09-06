@@ -1,36 +1,52 @@
-// 可与光线相交的对象类
+/**
+ * @file hittable.h
+ * @author Liuzengqiang (12021032@zju.edu.cn)
+ * @brief
+ * @version 0.1
+ * @date 2023-09-06
+ *
+ * @copyright Copyright (c) 2023
+ *
+ */
 #ifndef HITTABLE_H
 #define HITTABLE_H
 
 #include "ray.h"
 #include "rtweekend.h"
-// 交点类:
-// 交点 p;
-// 交点法向 normal;
-// 交点是光线ray.at(t)位置
-class material;
 
+class material;
+/**
+ * @brief 记录光线与物体的交点信息
+ *
+ */
 class hit_record {
  public:
-  point3 p;
-  vec3 normal;  // 这个normal总是和ray方向相反，因此不一定是物体表面的外法向
-  shared_ptr<material> mat;  // 交点的材料属性
-  double t;
-  // 用于标记这个交点是在物体的外表面(true) 还是内表面(false)
-  bool front_face;
-  // 用于设置这个交点的 front_face 和 normal
+  point3 p;  // 交点的坐标
+  // 交点处的法向, 与入射光方向相反(可能指向物体外也可能指向物体内)
+  vec3 normal;
+  shared_ptr<material> mat;  // 交点处材料属性
+  double t;                  // 光线的传播距离
+  bool front_face;           // 该交点是否是物体的外表面
+  /**
+   * @brief 设置该交点是否是物体的外表面
+   *
+   * @param r 入射光
+   * @param outward_normal 物体的外表面法向(向外)
+   */
   void set_face_normal(const ray& r, const vec3& outward_normal) {
     front_face = dot(r.direction(), outward_normal) < 0;
     normal = front_face ? (outward_normal) : (-outward_normal);
   }
 };
-// 物体对象
-// 所有物体都要继承这个类
+/**
+ * @brief 可与光线相交的类, 所有可与光线作用的物体都必须继承该类并实现其中的
+ * hit() 函数
+ *
+ */
 class hittable {
  public:
-  // =default 指示编译器生成默认的构造函数
+  // =default 关键字令编译器自动生成默认的构造函数
   virtual ~hittable() = default;
-
   virtual bool hit(const ray& r, interval ray_t, hit_record& rec) const = 0;
 };
 

@@ -1,4 +1,13 @@
-// 材料属性 类
+/**
+ * @file material.h
+ * @author Liuzengqiang (12021032@zju.edu.cn)
+ * @brief
+ * @version 0.1
+ * @date 2023-09-06
+ *
+ * @copyright Copyright (c) 2023
+ *
+ */
 #ifndef MATERIAL_H
 #define MATERIAL_H
 #include "color.h"
@@ -6,24 +15,40 @@
 #include "rtweekend.h"
 
 class hit_record;
-// 这里只是声明，没有实现
+/**
+ * @brief 材料类, 所有特定的材料都必须继承该类并实现其中的 scatter() 函数
+ *
+ */
 class material {
  public:
   virtual ~material() = default;
-  // 描述该属性的材料 散射光线 的行为
-  // 指定：入射光线 r_in, 交点 rec, 衰减 attenuation, 反射光线 scattered
+  /**
+   * @brief 计算入射光线照射到该材料上的行为, 若存在反射光线返回true,
+   * 没有反射光线返回false
+   *
+   * @param r_in 入射光线
+   * @param rec 交点
+   * @param attenuation 若存在光线衰减, 衰减系数记录在此变量内
+   * @param scattered 反射光线记录在此变量内
+   * @return true
+   * @return false
+   */
   virtual bool scatter(const ray& r_in, const hit_record& rec,
                        color& attenuation, ray& scattered) const = 0;
 };
 
-// 新建 Lambertian 材料属性
+/**
+ * @brief 漫反射类
+ * 1. 在交点表面法向方向存在散射
+ * 2. 衰减
+ *
+ */
 class lambertian : public material {
  public:
   lambertian(const color& a) : albedo(a) {}
-  // lambertian 会在表面法向周围的半球内 散射，并且存在一定的衰减attenuation
+
   bool scatter(const ray& r_in, const hit_record& rec, color& attenuation,
                ray& scattered) const override {
-    // 这里有可能 等于零向量，因此需要进行判断
     vec3 scatter_direction = rec.normal + random_unit_vector();
     if (scatter_direction.near_zero()) {
       scatter_direction = rec.normal;
@@ -35,59 +60,61 @@ class lambertian : public material {
   }
 
  private:
-  color albedo;
+  color albedo;  // 光线衰减系数
 };
-// 新建一种 金属材料
+
+/**
+ * @brief 金属漫反射类
+ * 1. 在理想反射光方向存在散射
+ * 2. 衰减
+ *
+ */
 class metal : public material {
  public:
   metal(const color& a, double f) : albedo(a), fuzz(f < 1 ? f : 1) {}
   bool scatter(const ray& r_in, const hit_record& rec, color& attenuation,
                ray& scattered) const override {
-    // 这是理想反射光线
+    // 理想反射光线方向
     vec3 reflected = reflect(unit_vector(r_in.direction()), rec.normal);
-    // 将理想反射光线上加上一个 fuzzy
     scattered = ray(rec.p, reflected + fuzz * random_unit_vector());
-
-    // scattered = ray(rec.p, reflected);
     attenuation = albedo;
     return (dot(scattered.direction(), rec.normal) > 0);
   }
 
  private:
-  color albedo;  // 颜色衰减系数 attenuation
-  double fuzz;   // 镜面反射光散射系数 fuzzy
+  color albedo;  // 衰减系数
+  double fuzz;   // 散射系数
 };
-// 新建一种具有折射属性的材料
 
+/**
+ * @brief 玻璃类
+ * 1. 折射
+ * 2. 反射
+ */
 class dielectric : public material {
  public:
   dielectric(double _etai_over_etat) : etai_over_etat(_etai_over_etat) {}
 
   bool scatter(const ray& r_in, const hit_record& rec, color& attenuation,
                ray& scattered) const override {
-    // 先假设没有衰减进行测试
     attenuation = color(1.0, 1.0, 1.0);
     // 根据入射光的方向进行判断 eta/eta' 的值
     double refraction_ratio =
         rec.front_face ? (1.0 / etai_over_etat) : (etai_over_etat);
-
-    // 先单位化入射光
     vec3 unit_direction = unit_vector(r_in.direction());
 
-    // 判断入射光 theta 角是否很大，导致只发生反射，而没有折射
+    // 入射角若很大则只发生反射, 没有折射
     double cos_theta = fmin(dot(rec.normal, -unit_direction), 1.0);
 
     double sin_theta = sqrt(1.0 - cos_theta * cos_theta);
     bool cannot_refraction = refraction_ratio * sin_theta > 1.0;
     vec3 direction;
-
     if (cannot_refraction ||
         reflectance(cos_theta, refraction_ratio) > random_double()) {
-      // 如果入射角度太大 或者 根据反射/折射比率计算得到该光线为反射->只有反射
+      // 若为反射
       direction = reflect(unit_direction, rec.normal);
     } else {
-      // 存在折射
-      // 计算折射光线
+      // 若为折射
       direction = refract(unit_direction, rec.normal, refraction_ratio);
     }
     scattered = ray(rec.p, direction);
@@ -95,12 +122,11 @@ class dielectric : public material {
   }
 
  private:
-  double etai_over_etat;
+  double etai_over_etat;  // 入射介质折射率/出射介质折射率
 
   // 计算 反射折射比率
-  // 输入 入射光cos, 两者介质的折射率
   static double reflectance(double cosine, double ref_idx) {
-    // 使用 Schlick's 逼近公式表示
+    // 使用 Schlick's 逼近公式计算
     auto r0 = (1 - ref_idx) / (1 + ref_idx);
     r0 = r0 * r0;
     return r0 + (1 - r0) * pow((1 - cosine), 5);

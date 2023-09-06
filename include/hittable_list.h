@@ -1,5 +1,13 @@
-// 多个hittable的封装类
-// 使用到了 智能指针 等特性
+/**
+ * @file hittable_list.h
+ * @author Liuzengqiang (12021032@zju.edu.cn)
+ * @brief
+ * @version 0.1
+ * @date 2023-09-06
+ *
+ * @copyright Copyright (c) 2023
+ *
+ */
 #ifndef HITTABLE_LIST_H
 #define HITTABLE_LIST_H
 
@@ -17,14 +25,21 @@ class hittable_list : public hittable {
   std::vector<shared_ptr<hittable>> objects;
 
   hittable_list() {}
-  // 添加一个 物体
   hittable_list(shared_ptr<hittable> object) { add(object); }
 
   void clear() { objects.clear(); }
 
   void add(shared_ptr<hittable> object) { objects.push_back(object); }
-
-  // 计算 光线 r 与物体列表第一个合法相交点
+  /**
+   * @brief 计算光线与物体的交点(第一个交点), 有交点则返回true,
+   * 没有交点返回false
+   *
+   * @param r 入射光线
+   * @param ray_t 入射光线的合法传播距离, 通常为 (0.001, infinity)
+   * @param rec 如果有交点则将交点信息保存在 rec 中
+   * @return true
+   * @return false
+   */
   bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
     hit_record temp_rec;
     bool hit_anything = false;

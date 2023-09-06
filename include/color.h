@@ -1,3 +1,13 @@
+/**
+ * @file color.h
+ * @author Liuzengqiang (12021032@zju.edu.cn)
+ * @brief
+ * @version 0.1
+ * @date 2023-09-06
+ *
+ * @copyright Copyright (c) 2023
+ *
+ */
 #ifndef COLOR_H
 #define COLOR_H
 
@@ -7,13 +17,23 @@
 #include "vec3.h"
 
 using color = vec3;
-// gamma 矫正
+/**
+ * @brief gamma 矫正
+ *
+ * @param linear_component
+ * @return double
+ */
 inline double linear_to_gamma(double linear_component) {
   return sqrt(linear_component);
 }
 
-// samples_per_pixel 是一个像素的采样光线数
-// 最终的像素颜色 等于 多根采样光线的平均
+/**
+ * @brief 写入像素值
+ *
+ * @param out 输出流
+ * @param pixel_color 像素颜色
+ * @param samples_per_pixel 该像素内的采样光线数
+ */
 void write_color(std::ostream &out, color pixel_color, int samples_per_pixel) {
   // Write the translated [0,255] value of each color component.
 

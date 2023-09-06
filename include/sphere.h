@@ -1,22 +1,42 @@
-// sphere类 该类继承 hittable
+/**
+ * @file sphere.h
+ * @author Liuzengqiang (12021032@zju.edu.cn)
+ * @brief
+ * @version 0.1
+ * @date 2023-09-06
+ *
+ * @copyright Copyright (c) 2023
+ *
+ */
 #ifndef SPHERE_H
 #define SPHERE_H
 
 #include "hittable.h"
 #include "material.h"
 #include "vec3.h"
+/**
+ * @brief 球类
+ *
+ *
+ */
 class sphere : public hittable {
  public:
-  // 构造函数包含 球心、半径
   sphere(point3 _center, double _radius, shared_ptr<material> _material)
       : center(_center), radius(_radius), mat(_material) {}
 
-  // 计算光线是否与该球相交
-  // ray_tmin 和 ray_tmax 给出合法光线的距离约束
-  // 返回值bool表示是否有合法的相交点
-  // 引用参数rec表示 如果有合法相交，合法的相交点为 rec
+  /**
+   * @brief 根据 球与射线的相交公式 计算光线是否与球相交, 详细公式推导过程见
+   * [Ray Tracing in One Weekend - 5.Adding a Sphere]
+   * (https://raytracing.github.io/books/RayTracingInOneWeekend.html#addingasphere/creatingourfirstraytracedimage)
+   * 如有合法交点则返回true, 否则返回false
+   *
+   * @param r 入射光线
+   * @param ray_t 入射光(射线)的合法距离
+   * @param rec 如果有合法的交点, 则在rec内记录交点信息
+   * @return true
+   * @return false
+   */
   bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
-    // 光线与球的相交计算公式，求解交点t
     vec3 oc = r.origin() - center;
     auto a = r.direction().length_squared();
     auto half_b = dot(oc, r.direction());
@@ -30,35 +50,29 @@ class sphere : public hittable {
 
     // Find the nearest root that lies in the acceptable range.
     auto root = (-half_b - sqrtd) / a;
-    // 这个 root 就是 t
-    // root = (-half_b-sqrtd)/a; 是较小的那个解
     if (!ray_t.surrounds(root)) {
-      // 如果 较小的解不在合法范围内[ray_tmin, ray_tmax]
-      // 那就尝试使用较大的那个解 root = (-half_b+sqrtd)/a;
+      // 如果较小的解不在合法范围内 那就尝试使用较大的那个解 root =
+      // (-half_b+sqrtd)/a;
       root = (-half_b + sqrtd) / a;
       if (!ray_t.surrounds(root)) {
         // 如果较大的那个节也不在合法范围内，说明没有合法交点
         return false;
       }
     }
-    // 不然，root = (-half_b-sqrtd)/a; 就是合法的解
-    // 那么交点的rec.t就等于root
-    // 位置rec.p等于ray.at(root)
-    // 法向等于球面(rec.p)处的法向
+    // 更新交点 rec
     rec.t = root;
     rec.p = r.at(rec.t);
     vec3 outward_normal = (rec.p - center) / radius;
     rec.set_face_normal(r, outward_normal);
-    // 更新交点的材料属性
     rec.mat = mat;
 
     return true;
   }
 
  private:
-  point3 center;
-  double radius;
-  shared_ptr<material> mat;  // 球的表面材料属性
+  point3 center;             // 球的中点
+  double radius;             // 球的半径
+  shared_ptr<material> mat;  // 球的表面材料
 };
 
 #endif
