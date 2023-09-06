@@ -1,4 +1,4 @@
-## Ray tracing in one weeekend by C++
+## Ray tracing in one weekend by C++
 
 ### 运行：
 ```shell
