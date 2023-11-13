@@ -19,22 +19,22 @@ class hit_record;
  * @brief 材料类, 所有特定的材料都必须继承该类并实现其中的 scatter() 函数
  *
  */
-class material {
- public:
-  virtual ~material() = default;
-  /**
-   * @brief 计算入射光线照射到该材料上的行为, 若存在反射光线返回true,
-   * 没有反射光线返回false
-   *
-   * @param r_in 入射光线
-   * @param rec 交点
-   * @param attenuation 若存在光线衰减, 衰减系数记录在此变量内
-   * @param scattered 反射光线记录在此变量内
-   * @return true
-   * @return false
-   */
-  virtual bool scatter(const ray& r_in, const hit_record& rec,
-                       color& attenuation, ray& scattered) const = 0;
+class material
+{
+  public:
+    virtual ~material() = default;
+    /**
+     * @brief 计算入射光线照射到该材料上的行为, 若存在反射光线返回true,
+     * 没有反射光线返回false
+     *
+     * @param r_in 入射光线
+     * @param rec 交点
+     * @param attenuation 若存在光线衰减, 衰减系数记录在此变量内
+     * @param scattered 反射光线记录在此变量内
+     * @return true
+     * @return false
+     */
+    virtual bool scatter(const ray &r_in, const hit_record &rec, color &attenuation, ray &scattered) const = 0;
 };
 
 /**
@@ -43,24 +43,28 @@ class material {
  * 2. 衰减
  *
  */
-class lambertian : public material {
- public:
-  lambertian(const color& a) : albedo(a) {}
-
-  bool scatter(const ray& r_in, const hit_record& rec, color& attenuation,
-               ray& scattered) const override {
-    vec3 scatter_direction = rec.normal + random_unit_vector();
-    if (scatter_direction.near_zero()) {
-      scatter_direction = rec.normal;
+class lambertian : public material
+{
+  public:
+    lambertian(const color &a) : albedo(a)
+    {
     }
 
-    scattered = ray(rec.p, scatter_direction);
-    attenuation = albedo;
-    return true;
-  }
+    bool scatter(const ray &r_in, const hit_record &rec, color &attenuation, ray &scattered) const override
+    {
+        vec3 scatter_direction = rec.normal + random_unit_vector();
+        if (scatter_direction.near_zero())
+        {
+            scatter_direction = rec.normal;
+        }
 
- private:
-  color albedo;  // 光线衰减系数
+        scattered = ray(rec.p, scatter_direction);
+        attenuation = albedo;
+        return true;
+    }
+
+  private:
+    color albedo; // 光线衰减系数
 };
 
 /**
@@ -69,21 +73,28 @@ class lambertian : public material {
  * 2. 衰减
  *
  */
-class metal : public material {
- public:
-  metal(const color& a, double f) : albedo(a), fuzz(f < 1 ? f : 1) {}
-  bool scatter(const ray& r_in, const hit_record& rec, color& attenuation,
-               ray& scattered) const override {
-    // 理想反射光线方向
-    vec3 reflected = reflect(unit_vector(r_in.direction()), rec.normal);
-    scattered = ray(rec.p, reflected + fuzz * random_unit_vector());
-    attenuation = albedo;
-    return (dot(scattered.direction(), rec.normal) > 0);
-  }
+class metal : public material
+{
+  public:
+    metal(const color &a, double f) : albedo(a), fuzz(f < 1 ? f : 1)
+    {
+    }
+    bool scatter(const ray &r_in, const hit_record &rec, color &attenuation, ray &scattered) const override
+    {
+        // 理想反射光线方向
+        vec3 reflected = reflect(unit_vector(r_in.direction()), rec.normal);
+        scattered = ray(rec.p, reflected + fuzz * random_unit_vector());
+        while((dot(scattered.direction(), rec.normal) <= 0))
+        {
+            scattered = ray(rec.p, reflected + fuzz * random_unit_vector());
+        }
+        attenuation = albedo;
+        return true;
+    }
 
- private:
-  color albedo;  // 衰减系数
-  double fuzz;   // 散射系数
+  private:
+    color albedo; // 衰减系数
+    double fuzz;  // 散射系数
 };
 
 /**
@@ -91,46 +102,51 @@ class metal : public material {
  * 1. 折射
  * 2. 反射
  */
-class dielectric : public material {
- public:
-  dielectric(double _etai_over_etat) : etai_over_etat(_etai_over_etat) {}
-
-  bool scatter(const ray& r_in, const hit_record& rec, color& attenuation,
-               ray& scattered) const override {
-    attenuation = color(1.0, 1.0, 1.0);
-    // 根据入射光的方向进行判断 eta/eta' 的值
-    double refraction_ratio =
-        rec.front_face ? (1.0 / etai_over_etat) : (etai_over_etat);
-    vec3 unit_direction = unit_vector(r_in.direction());
-
-    // 入射角若很大则只发生反射, 没有折射
-    double cos_theta = fmin(dot(rec.normal, -unit_direction), 1.0);
-
-    double sin_theta = sqrt(1.0 - cos_theta * cos_theta);
-    bool cannot_refraction = refraction_ratio * sin_theta > 1.0;
-    vec3 direction;
-    if (cannot_refraction ||
-        reflectance(cos_theta, refraction_ratio) > random_double()) {
-      // 若为反射
-      direction = reflect(unit_direction, rec.normal);
-    } else {
-      // 若为折射
-      direction = refract(unit_direction, rec.normal, refraction_ratio);
+class dielectric : public material
+{
+  public:
+    dielectric(double _etai_over_etat) : etai_over_etat(_etai_over_etat)
+    {
     }
-    scattered = ray(rec.p, direction);
-    return true;
-  }
 
- private:
-  double etai_over_etat;  // 入射介质折射率/出射介质折射率
+    bool scatter(const ray &r_in, const hit_record &rec, color &attenuation, ray &scattered) const override
+    {
+        attenuation = color(1.0, 1.0, 1.0);
+        // 根据入射光的方向进行判断 eta/eta' 的值
+        double refraction_ratio = rec.front_face ? (1.0 / etai_over_etat) : (etai_over_etat);
+        vec3 unit_direction = unit_vector(r_in.direction());
 
-  // 计算 反射折射比率
-  static double reflectance(double cosine, double ref_idx) {
-    // 使用 Schlick's 逼近公式计算
-    auto r0 = (1 - ref_idx) / (1 + ref_idx);
-    r0 = r0 * r0;
-    return r0 + (1 - r0) * pow((1 - cosine), 5);
-  }
+        // 入射角若很大则只发生反射, 没有折射
+        double cos_theta = fmin(dot(rec.normal, -unit_direction), 1.0);
+
+        double sin_theta = sqrt(1.0 - cos_theta * cos_theta);
+        bool cannot_refraction = refraction_ratio * sin_theta > 1.0;
+        vec3 direction;
+        if (cannot_refraction || reflectance(cos_theta, refraction_ratio) > random_double())
+        {
+            // 若为反射
+            direction = reflect(unit_direction, rec.normal);
+        }
+        else
+        {
+            // 若为折射
+            direction = refract(unit_direction, rec.normal, refraction_ratio);
+        }
+        scattered = ray(rec.p, direction);
+        return true;
+    }
+
+  private:
+    double etai_over_etat; // 入射介质折射率/出射介质折射率
+
+    // 计算 反射折射比率
+    static double reflectance(double cosine, double ref_idx)
+    {
+        // 使用 Schlick's 逼近公式计算
+        auto r0 = (1 - ref_idx) / (1 + ref_idx);
+        r0 = r0 * r0;
+        return r0 + (1 - r0) * pow((1 - cosine), 5);
+    }
 };
 
 #endif
